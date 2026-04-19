@@ -222,9 +222,9 @@ Full Instagram caption. Structure:
 - 5-8 relevant hashtags on the last line
 [/IG_CAPTION]
 
-[X_POST]
-Twitter/X version — max 280 characters. Hook + value + CTA. No hashtags needed.
-[/X_POST]
+[THREADS_POST]
+Threads version — max 500 characters. Hook + 2-3 lines of value + CTA. Conversational tone, no hashtags needed.
+[/THREADS_POST]
 
 [SLIDE_OUTLINE]
 7-slide carousel outline (Slide 1: hook, Slides 2-6: content, Slide 7: CTA).
@@ -260,7 +260,7 @@ def parse_and_act(output):
 
     topic        = extract(output, "TOPIC")
     ig_caption   = extract(output, "IG_CAPTION")
-    x_post       = extract(output, "X_POST")
+    threads_post = extract(output, "THREADS_POST")
     slide_outline = extract(output, "SLIDE_OUTLINE")
     new_task     = extract(output, "NEW_TASK")
     system_note  = extract(output, "SYSTEM_NOTE")
@@ -286,12 +286,12 @@ def parse_and_act(output):
         extra={"topic": topic, "slide_outline": slide_outline or ""},
     )
 
-    # --- Queue X post ---
-    if x_post:
+    # --- Queue Threads post ---
+    if threads_post:
         queue_post(
-            platform="x",
-            content_type="tweet",
-            caption=x_post[:280],
+            platform="threads",
+            content_type="post",
+            caption=threads_post[:500],
             hashtags="",
             extra={"topic": topic},
         )

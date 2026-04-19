@@ -1,6 +1,6 @@
 """
 poster.py — social media posting engine
-Reads the content queue and posts to X, Instagram, Facebook.
+Reads the content queue and posts to Threads, Instagram, Facebook.
 Fetches images from Pexels for Instagram posts.
 """
 
@@ -9,7 +9,7 @@ import requests
 from datetime import datetime
 
 from config import (
-    X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET,
+    THREADS_USER_ID, THREADS_ACCESS_TOKEN,
     META_PAGE_ID, META_PAGE_TOKEN, META_IG_ACCOUNT_ID,
     PEXELS_API_KEY,
 )
@@ -45,34 +45,62 @@ def get_pexels_image(topic):
         return None
 
 
-# ===== X (TWITTER) =====
+# ===== THREADS (Meta Graph API) =====
 
-def post_to_x(caption):
-    """Post a tweet via Tweepy (Twitter API v2)."""
-    if not all([X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET]):
-        log("X credentials not configured — skipping")
-        return {"success": False, "error": "missing credentials", "platform": "x"}
-    try:
-        import tweepy
-    except ImportError:
-        log("tweepy not installed. Run: pip install tweepy")
-        return {"success": False, "error": "tweepy not installed", "platform": "x"}
+def post_to_threads(caption, image_url=None):
+    """
+    Post to Threads via the Threads API (graph.threads.net).
+    Supports text-only or image + text posts.
+    Max caption length: 500 characters.
+    """
+    if not all([THREADS_USER_ID, THREADS_ACCESS_TOKEN]):
+        log("Threads credentials not configured — skipping")
+        return {"success": False, "error": "missing credentials", "platform": "threads"}
 
     try:
-        client = tweepy.Client(
-            consumer_key=X_API_KEY,
-            consumer_secret=X_API_SECRET,
-            access_token=X_ACCESS_TOKEN,
-            access_token_secret=X_ACCESS_SECRET,
+        base = f"https://graph.threads.net/v1.0/{THREADS_USER_ID}"
+        text = caption[:500]
+
+        # Step 1: Create media container
+        container_data = {
+            "text":         text,
+            "access_token": THREADS_ACCESS_TOKEN,
+        }
+        if image_url:
+            container_data["media_type"] = "IMAGE"
+            container_data["image_url"]  = image_url
+        else:
+            container_data["media_type"] = "TEXT"
+
+        r1 = requests.post(
+            f"{base}/threads",
+            data=container_data,
+            timeout=30,
         )
-        text = caption[:280]
-        resp = client.create_tweet(text=text)
-        tweet_id = resp.data["id"]
-        log(f"Posted to X — tweet ID: {tweet_id}")
-        return {"success": True, "id": str(tweet_id), "platform": "x"}
+        r1.raise_for_status()
+        container_id = r1.json().get("id")
+        if not container_id:
+            log(f"Threads container creation failed: {r1.text}")
+            return {"success": False, "error": r1.text, "platform": "threads"}
+
+        # Step 2: Publish (wait briefly for server processing)
+        time.sleep(5)
+        r2 = requests.post(
+            f"{base}/threads_publish",
+            data={
+                "creation_id":  container_id,
+                "access_token": THREADS_ACCESS_TOKEN,
+            },
+            timeout=30,
+        )
+        r2.raise_for_status()
+        post_id = r2.json().get("id")
+        log(f"Posted to Threads — post ID: {post_id}")
+        return {"success": True, "id": str(post_id), "platform": "threads"}
+
     except Exception as e:
-        log(f"X post failed: {e}")
-        return {"success": False, "error": str(e), "platform": "x"}
+        log(f"Threads post failed: {e}")
+        return {"success": False, "error": str(e), "platform": "threads"}
 
 
 # ===== INSTAGRAM (Meta Graph API) =====
@@ -179,9 +207,10 @@ def post_platform(platform, data):
     hashtags = data.get("hashtags", "")
     topic    = data.get("extra", {}).get("topic", "fitness strength training")
 
-    if platform == "x":
+    if platform == "threads":
         full = f"{caption}\n\n{hashtags}".strip() if hashtags else caption
-        return post_to_x(full)
+        image_url = get_pexels_image(topic)
+        return post_to_threads(full, image_url)
 
     elif platform == "instagram":
         image_url = get_pexels_image(topic)
@@ -207,7 +236,7 @@ def post_daily():
 
     log("=== Daily post triggered ===")
 
-    platforms = ["x", "instagram", "facebook"]
+    platforms = ["threads", "instagram", "facebook"]
     posted_any = False
 
     for platform in platforms:

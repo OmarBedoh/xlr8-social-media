@@ -23,11 +23,9 @@ OLLAMA_URL   = "http://localhost:11434/api/generate"
 OLLAMA_MODEL = "llama3"
 OLLAMA_TIMEOUT = 90  # seconds
 
-# ===== X (TWITTER) =====
-X_API_KEY       = os.getenv("X_API_KEY", "")
-X_API_SECRET    = os.getenv("X_API_SECRET", "")
-X_ACCESS_TOKEN  = os.getenv("X_ACCESS_TOKEN", "")
-X_ACCESS_SECRET = os.getenv("X_ACCESS_SECRET", "")
+# ===== THREADS (Meta) =====
+THREADS_USER_ID       = os.getenv("THREADS_USER_ID", "")
+THREADS_ACCESS_TOKEN  = os.getenv("THREADS_ACCESS_TOKEN", "")
 
 # ===== META (INSTAGRAM + FACEBOOK) =====
 META_PAGE_ID      = os.getenv("META_PAGE_ID", "")
