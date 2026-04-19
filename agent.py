@@ -88,12 +88,12 @@ def call_ollama(prompt):
 # ===== GROQ (free cloud AI — fallback when Ollama is offline) =====
 
 def call_groq(prompt):
-    """Use Groq's free API (llama3-70b) when Ollama is unavailable."""
+    """Use Groq's free API (llama-3.3-70b-versatile) when Ollama is unavailable."""
     if not GROQ_API_KEY:
         log("No GROQ_API_KEY set — cannot use Groq fallback")
         return None
     try:
-        log("Calling Groq (llama3-70b)...")
+        log("Calling Groq (llama-3.3-70b-versatile)...")
         r = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={
@@ -101,7 +101,7 @@ def call_groq(prompt):
                 "Content-Type": "application/json",
             },
             json={
-                "model": "llama3-70b-8192",
+                "model": "llama-3.3-70b-versatile",
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0.7,
                 "max_tokens": 2000,
