@@ -1,0 +1,11 @@
+[build]
+builder = "dockerfile"
+
+[deploy]
+startCommand = "python loop.py"
+restartPolicyType = "always"
+restartPolicyMaxRetries = 10
+
+[[mounts]]
+source = "ptdata"
+destination = "/app/data"
